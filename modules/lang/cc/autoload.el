@@ -256,3 +256,28 @@ header files."
   (interactive)
   (lsp-ui-peek-find-custom "textDocument/references"
                            (plist-put (lsp--text-document-position-params) :role 16)))
+
+;;
+;; clangd specific helpers
+
+;;;###autoload
+(defun +cc/clangd-find-other-file (&optional in-other-window event)
+  "Switch between header/source file corresponding to this file.
+
+If optional IN-OTHER-WINDOW is non-nil, find the file in the other window.
+If optional EVENT is non-nil (default `last-nonmenu-event')
+
+   List of functions to be called if the other file has been created."
+  (interactive (list current-prefix-arg last-nonmenu-event))
+
+  ;; Same as ff-find-other-file but uses LSP.
+  (let ((start-buffer (current-buffer))
+        (start-point (point)))
+    (posn-set-point (event-end event))
+    (let* ((server (eglot--current-server-or-lose))
+           (start-uri (eglot--TextDocumentIdentifier))
+           (jump-uri (eglot--request server :textDocument/switchSourceHeader start-uri))
+           (jump (eglot-uri-to-path jump-uri)))
+      (ff-switch-to-buffer (get-file-buffer jump) in-other-window))
+    (with-current-buffer start-buffer
+      (goto-char start-point))))
